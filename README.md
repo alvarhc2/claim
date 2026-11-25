@@ -9,11 +9,31 @@
 
 The manuscript is submitted to IEEE Transactions on Pattern Analysis and Machine Intelligence. A DOI will replace this note when the paper is published.
 
+Three loops show the shape of the block. The figure after them follows one series through the matrices.
+
 <p align="center">
-  <img src="docs/figures/block.gif" alt="A dip in a series, a locality mask that widens and narrows, and the same mask applied to content weights" width="860">
+  <img src="docs/figures/dials.gif" alt="A CLAIM block beside a Transformer block. Three dials set locality, causality and location invariance on a short rank, while attention is one full map." width="860">
 </p>
 
-<p align="center"><i>One CLAIM block. The input is a short series with an event in the middle. Each latent unit has a Gaussian receptive field. Multiplying that field by a content weight keeps the event and lets the width of the field change with <b>α</b>.</i></p>
+<p align="center"><i>CLAIM, on the left, mixes the series with weights of shape S × r. The dials are the three scalars. α sets the width of each unit's field, β sets how strongly the future is kept, and γ sets the balance between one shared kernel and independent weights. The Transformer, on the right, mixes through an attention map of shape S × S.</i></p>
+
+<p align="center">
+  <img src="docs/figures/scaling.gif" alt="Attention's S by S map and CLAIM's S by r strip as the sequence lengthens, with the leading-term curves meeting when the length equals the rank." width="860">
+</p>
+
+<p align="center"><i>Leading term per channel, with the rank fixed at 48. CLAIM grows in proportion to the length. Attention grows with the square of the length. The matrices share one scale, so their areas are the number of entries. The curves meet when the length equals the rank. An MLP-Mixer grows in proportion to the length as well, through two MLPs.</i></p>
+
+<p align="center">
+  <img src="docs/figures/fields.gif" alt="Tokens joined to latent units by dynamic weights. Teal priors widen with locality, cut off the future with causality, and the projection moves from a shared kernel to independent weights." width="860">
+</p>
+
+<p align="center"><i>Amber arcs are dynamic weights that have passed the mask, and they are large where the input carries the event. Teal is the prior. α widens it from each unit's center, and β fades the part after that center. The strip along the bottom is the projection. γ carries it from a shifted kernel to independent weights.</i></p>
+
+<p align="center">
+  <img src="docs/figures/block.gif" alt="A multivariate series arranged as a matrix, multiplied by learnable weights into dynamic mixing weights, regulated by locality and causality, then mixed, projected and added back" width="860">
+</p>
+
+<p align="center"><i>One pass through a CLAIM block. The diagram stays in view, and each part lights up as its matrices appear. The series is arranged as an S×C matrix and multiplied by a small learnable C×r matrix. The product is a set of dynamic mixing weights, S×r rather than an S×S attention map. Locality and causality regulate those weights, the masked weights mix tokens, and a projection returns the sequence to its original shape. A residual adds the input back.</i></p>
 
 ## The block
 
@@ -78,6 +98,12 @@ L_{ij} = \exp\!\left(-\frac{(i - \mu_j)^2}{2\sigma_{\alpha}^2}\right).
 \]
 
 \(\sigma(\alpha) \to 0\) makes each unit read only the tokens next to its center. \(\sigma(\alpha) \to 1\) makes \(\sigma_{\alpha} = 3S\). The weight on the farthest token is then about \(0.95\) for a long series, so the mask is almost flat and the block mixes globally. The constant \(3\) is what produces that limit: \(\exp(-1/(2 \cdot 3^2)) \approx 0.946\).
+
+<p align="center">
+  <img src="docs/figures/locality.gif" alt="A Gaussian receptive field widening and narrowing, then multiplying content weights" width="760">
+</p>
+
+<p align="center"><i>Each latent unit keeps a Gaussian receptive field. As α changes, the field widens and narrows, and the content weights remain only where the field is high.</i></p>
 
 The exact Gaussian is the default. `--locality lookup` stores the same family of masks at ten spreads placed uniformly from \(0\) to \(3S\), and interpolates the two nearest masks from \(\sigma(\alpha)\). The grid does not depend on the dataset. This is a training optimization: the forward pass no longer evaluates an exponential at every entry. The endpoints of the grid match the exact mask.
 
